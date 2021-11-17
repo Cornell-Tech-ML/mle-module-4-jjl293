@@ -31,7 +31,7 @@ def tensor_map(fn):
 
     Args:
         fn: function mappings floats-to-floats to apply.
-        out (array): storage for out tensor.
+        out_storage (array): storage for out tensor.
         out_shape (array): shape for out tensor.
         out_strides (array): strides for out tensor.
         in_storage (array): storage for in tensor.
@@ -42,8 +42,16 @@ def tensor_map(fn):
         None : Fills in `out`
     """
 
-    def _map(out, out_shape, out_strides, in_storage, in_shape, in_strides):
-        raise NotImplementedError('Need to include this file from past assignment.')
+    def _map(out_storage, out_shape, out_strides, in_storage, in_shape, in_strides) -> None:
+        for i in prange(len(out_storage)):
+            out_index = np.zeros(MAX_DIMS, np.uint16)
+            in_index = np.zeros(MAX_DIMS, np.uint16)
+            to_index(i, out_shape, out_index)
+            broadcast_index(out_index, out_shape, in_shape, in_index)
+            data = in_storage[index_to_position(in_index, in_strides)]
+            out_storage[index_to_position(out_index, out_strides)] = fn(data)
+
+    return _map
 
     return njit(parallel=True)(_map)
 
@@ -91,7 +99,7 @@ def tensor_zip(fn):
 
     Args:
         fn: function maps two floats to float to apply.
-        out (array): storage for `out` tensor.
+        out_storage (array): storage for `out` tensor.
         out_shape (array): shape for `out` tensor.
         out_strides (array): strides for `out` tensor.
         a_storage (array): storage for `a` tensor.
@@ -102,11 +110,11 @@ def tensor_zip(fn):
         b_strides (array): strides for `b` tensor.
 
     Returns:
-        None : Fills in `out`
+        None : Fills in `out_storage`
     """
 
     def _zip(
-        out,
+        out_storage,
         out_shape,
         out_strides,
         a_storage,
@@ -116,7 +124,16 @@ def tensor_zip(fn):
         b_shape,
         b_strides,
     ):
-        raise NotImplementedError('Need to include this file from past assignment.')
+        for i in prange(len(out_storage)):
+            out_index = np.zeros(MAX_DIMS, np.uint16)
+            a_index = np.zeros(MAX_DIMS, np.uint16)
+            b_index = np.zeros(MAX_DIMS, np.uint16)
+            to_index(i, out_shape, out_index)
+            broadcast_index(out_index, out_shape, a_shape, a_index)
+            broadcast_index(out_index, out_shape, b_shape, b_index)
+            a_data = a_storage[index_to_position(a_index, a_strides)]
+            b_data = b_storage[index_to_position(b_index, b_strides)]
+            out_storage[index_to_position(out_index, out_strides)] = fn(a_data, b_data)
 
     return njit(parallel=True)(_zip)
 
@@ -159,7 +176,7 @@ def tensor_reduce(fn):
 
     Args:
         fn: reduction function mapping two floats to float.
-        out (array): storage for `out` tensor.
+        out_storage (array): storage for `out` tensor.
         out_shape (array): shape for `out` tensor.
         out_strides (array): strides for `out` tensor.
         a_storage (array): storage for `a` tensor.
@@ -168,12 +185,20 @@ def tensor_reduce(fn):
         reduce_dim (int): dimension to reduce out
 
     Returns:
-        None : Fills in `out`
+        None : Fills in `out_storage`
 
     """
 
-    def _reduce(out, out_shape, out_strides, a_storage, a_shape, a_strides, reduce_dim):
-        raise NotImplementedError('Need to include this file from past assignment.')
+    def _reduce(out_storage, out_shape, out_strides, a_storage, a_shape, a_strides, reduce_dim):
+        for p in prange(len(out_storage)):
+            out_index = np.zeros(MAX_DIMS, np.uint16)
+            to_index(p, out_shape, out_index)
+            out_pos = index_to_position(out_index, out_strides)
+            a_pos = index_to_position(out_index, a_strides)
+            for _ in range(a_shape[reduce_dim]):
+                out_storage[out_pos] = fn(
+                    out_storage[out_pos], a_storage[a_pos])
+                a_pos += a_strides[reduce_dim]
 
     return njit(parallel=True)(_reduce)
 
@@ -213,7 +238,7 @@ def reduce(fn, start=0.0):
 
 @njit(parallel=True, fastmath=True)
 def tensor_matrix_multiply(
-    out,
+    out_storage,
     out_shape,
     out_strides,
     a_storage,
@@ -238,7 +263,7 @@ def tensor_matrix_multiply(
 
 
     Args:
-        out (array): storage for `out` tensor
+        out_storage (array): storage for `out` tensor
         out_shape (array): shape for `out` tensor
         out_strides (array): strides for `out` tensor
         a_storage (array): storage for `a` tensor
@@ -251,10 +276,23 @@ def tensor_matrix_multiply(
     Returns:
         None : Fills in `out`
     """
+
     a_batch_stride = a_strides[0] if a_shape[0] > 1 else 0
     b_batch_stride = b_strides[0] if b_shape[0] > 1 else 0
+    j = a_shape[-1]
 
-    raise NotImplementedError('Need to include this file from past assignment.')
+    for x in prange(len(out_storage)):
+        out_index = np.zeros(MAX_DIMS, np.uint16)
+        to_index(x, out_shape, out_index)
+        k = out_index[2]
+        i = out_index[1]
+        l = out_index[0]
+        sum = 0
+        for n in range(j):
+            a_position = l * a_batch_stride + i * a_strides[1] + n * a_strides[2]
+            b_position = l * b_batch_stride + n * b_strides[1] + k * b_strides[2]
+            sum = sum + a_storage[a_position] * b_storage[b_position]
+        out_storage[x] = sum
 
 
 def matrix_multiply(a, b):

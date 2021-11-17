@@ -1,3 +1,6 @@
+from minitorch import Tensor
+
+
 class Module:
     """
     Modules form a tree that store parameters and other
@@ -21,25 +24,43 @@ class Module:
 
     def train(self):
         "Set the mode of this module and all descendent modules to `train`."
-        raise NotImplementedError('Need to include this file from past assignment.')
+        self.training = True
+        for mod in self._modules.values():
+            mod.train()
 
     def eval(self):
         "Set the mode of this module and all descendent modules to `eval`."
-        raise NotImplementedError('Need to include this file from past assignment.')
+        self.training = False
+        for mod in self._modules.values():
+            mod.eval()
 
     def named_parameters(self):
         """
         Collect all the parameters of this module and its descendents.
 
-
         Returns:
             list of pairs: Contains the name and :class:`Parameter` of each ancestor parameter.
         """
-        raise NotImplementedError('Need to include this file from past assignment.')
+        def helperRec(modArg, retLst, key=""):
+            for k , v in modArg._parameters.items():
+                if key == "":
+                    retLst.append((k, v))
+                else:
+                    retLst.append((f"{key}.{k}", v))
+
+            for k, mod in modArg._modules.items():
+                if key == "":
+                    helperRec(mod, retLst, k)
+                else:
+                    helperRec(mod, retLst, f"{key}.{k}")
+
+        out = []
+        helperRec(self, out)
+        return out
 
     def parameters(self):
         "Enumerate over all the parameters of this module and its descendents."
-        raise NotImplementedError('Need to include this file from past assignment.')
+        return [x[1] for x in self.named_parameters()]
 
     def add_parameter(self, k, v):
         """
@@ -113,7 +134,7 @@ class Parameter:
     any value for testing.
     """
 
-    def __init__(self, x=None, name=None):
+    def __init__(self, x: Tensor = None, name=None):
         self.value = x
         self.name = name
         if hasattr(x, "requires_grad_"):

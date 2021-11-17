@@ -11,7 +11,7 @@ class IndexingError(RuntimeError):
     pass
 
 
-def index_to_position(index, strides):
+def index_to_position(index, strides) -> int:
     """
     Converts a multidimensional tensor `index` into a single-dimensional position in
     storage based on strides.
@@ -23,11 +23,13 @@ def index_to_position(index, strides):
     Returns:
         int : position in storage
     """
+    position = 0
+    for i, s in zip(index, strides):
+        position += i * s
+    return int(position)
 
-    raise NotImplementedError('Need to include this file from past assignment.')
 
-
-def to_index(ordinal, shape, out_index):
+def to_index(ordinal: int, shape: tuple, out_index) -> None:
     """
     Convert an `ordinal` to an index in the `shape`.
     Should ensure that enumerating position 0 ... size of a
@@ -43,10 +45,14 @@ def to_index(ordinal, shape, out_index):
       None : Fills in `out_index`.
 
     """
-    raise NotImplementedError('Need to include this file from past assignment.')
+    cur_ord = ordinal + 0
+    for dim in range(len(shape) - 1, -1, -1):
+        sh = shape[dim]
+        out_index[dim] = cur_ord % sh
+        cur_ord = cur_ord // sh
 
 
-def broadcast_index(big_index, big_shape, shape, out_index):
+def broadcast_index(big_index, big_shape, shape, out_index) -> None:
     """
     Convert a `big_index` into `big_shape` to a smaller `out_index`
     into `shape` following broadcasting rules. In this case
@@ -60,13 +66,15 @@ def broadcast_index(big_index, big_shape, shape, out_index):
         shape (array-like): tensor shape of smaller tensor
         out_index (array-like): multidimensional index of smaller tensor
 
-    Returns:
+    Rets:
         None : Fills in `out_index`.
     """
-    raise NotImplementedError('Need to include this file from past assignment.')
+    for i, dimension in enumerate(shape):
+        diff = i + len(big_shape) - len(shape)
+        out_index[i] = big_index[diff] if dimension != 1 else 0
 
 
-def shape_broadcast(shape1, shape2):
+def shape_broadcast(shape1: tuple, shape2: tuple) -> tuple:
     """
     Broadcast two shapes to create a new union shape.
 
@@ -80,7 +88,23 @@ def shape_broadcast(shape1, shape2):
     Raises:
         IndexingError : if cannot broadcast
     """
-    raise NotImplementedError('Need to include this file from past assignment.')
+    a, b = shape1, shape2
+    m = max(len(a), len(b))
+    c_rev = [0] * m
+    a_rev = list(reversed(a))
+    b_rev = list(reversed(b))
+    for i in range(m):
+        if i >= len(a):
+            c_rev[i] = b_rev[i]
+        elif i >= len(b):
+            c_rev[i] = a_rev[i]
+        else:
+            c_rev[i] = max(a_rev[i], b_rev[i])
+            if a_rev[i] != c_rev[i] and a_rev[i] != 1:
+                raise IndexingError("Broadcast failure")
+            if b_rev[i] != c_rev[i] and b_rev[i] != 1:
+                raise IndexingError("Broadcast failure")
+    return tuple(reversed(c_rev))
 
 
 def strides_from_shape(shape):
@@ -173,7 +197,7 @@ class TensorData:
     def tuple(self):
         return (self._storage, self._shape, self._strides)
 
-    def permute(self, *order):
+    def permute(self, *order) -> 'TensorData':
         """
         Permute the dimensions of the tensor.
 
@@ -187,7 +211,7 @@ class TensorData:
             range(len(self.shape))
         ), f"Must give a position to each dimension. Shape: {self.shape} Order: {order}"
 
-        raise NotImplementedError('Need to include this file from past assignment.')
+        return TensorData(self._storage, tuple(self.shape[i] for i in order), tuple(self.strides[i] for i in order))
 
     def to_string(self):
         s = ""
