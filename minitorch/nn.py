@@ -1,6 +1,4 @@
-from numpy.lib.arraysetops import isin
 from minitorch import Tensor
-from minitorch.tensor_data import TensorData
 from .fast_ops import FastOps
 from .tensor_functions import rand, Function
 from . import operators
