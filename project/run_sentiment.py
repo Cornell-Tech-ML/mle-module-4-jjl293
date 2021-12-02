@@ -47,7 +47,7 @@ class CNNSentimentKim(minitorch.Module):
         followed by a non-linear activation function (the paper uses tanh, we apply a ReLu)
     2. Apply max-over-time across each feature map
     3. Apply a Linear to size C (number of classes) followed by a ReLU and Dropout with rate 25%
-    4. Apply a logsoftmax over the class dimension.
+    4. Apply a Sigmoid.
     """
 
     def __init__(

@@ -58,7 +58,7 @@ class Network(minitorch.Module):
     4. Flatten channels, height, and width. (Should be size BATCHx392)
     5. Apply a Linear to size 64 followed by a ReLU and Dropout with rate 25%
     6. Apply a Linear to size C (number of classes).
-    7. Apply a logsoftmax over the class dimension.
+    7. Apply a Sigmoid.
     """
 
     def __init__(self):
