@@ -70,7 +70,7 @@ class Network(minitorch.Module):
         self.conv1 = Conv2d(1, 4, 3, 3)
         self.conv2 = Conv2d(4, 8, 3, 3)
         self.layer1 = Linear(392, 64)
-        self.layer2 = Linear(64, 1)
+        self.layer2 = Linear(64, 10)
 
     def forward(self, x):
         self.mid = self.conv1.forward(x).relu()
