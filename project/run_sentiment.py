@@ -1,5 +1,4 @@
 import minitorch
-from minitorch.nn import max
 from datasets import load_dataset
 import embeddings
 import random
@@ -20,7 +19,7 @@ class Linear(minitorch.Module):
         self.out_size = out_size
 
     def forward(self, x):
-        batch, in_size = x.shape
+        batch, in_size, _ = x.shape
         return (
             x.view(batch, in_size) @ self.weights.value.view(in_size, self.out_size)
         ).view(batch, self.out_size) + self.bias.value
@@ -63,7 +62,7 @@ class CNNSentimentKim(minitorch.Module):
         self.conv1 = Conv1d(embedding_size, feature_map_size, filter_sizes[0])
         self.conv2 = Conv1d(embedding_size, feature_map_size, filter_sizes[1])
         self.conv3 = Conv1d(embedding_size, feature_map_size, filter_sizes[2])
-        self.layer1 = Linear(3 * feature_map_size, 1)
+        self.linear = Linear(feature_map_size, 1)  # 3 * feature_map_size, if implement concat
 
     def forward(self, embeddings: 'minitorch.Tensor'):
         """
@@ -73,8 +72,8 @@ class CNNSentimentKim(minitorch.Module):
         out1 = self.conv1.forward(embeddings).relu()
         out2 = self.conv2.forward(embeddings).relu()
         out3 = self.conv3.forward(embeddings).relu()
-        out_sum = max(out1, 2) + max(out2, 2) + max(out3, 2)
-        l = self.layer1.forward(out_sum).relu()
+        out_sum = minitorch.nn.max(out1, 2) + minitorch.nn.max(out2, 2) + minitorch.nn.max(out3, 2)
+        l = self.linear.forward(out_sum).relu()
         if self.training:
             l = minitorch.dropout(l, self.dropout)
         return l.sigmoid()

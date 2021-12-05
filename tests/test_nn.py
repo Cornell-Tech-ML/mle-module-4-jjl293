@@ -39,7 +39,7 @@ def test_max(t):
     out = minitorch.nn.max(t, 2)
     assert out[0, 0, 0] == max([t[0, 0, x] for x in range(4)])
 
-    grad_check(lambda a: minitorch.nn.max(a, 2), t + minitorch.rand(t.shape) * 1e-5)
+    grad_check(lambda a: minitorch.nn.max(a, 2), t + minitorch.rand(t.shape) * 1e-4)
 
 
 @pytest.mark.task4_4
