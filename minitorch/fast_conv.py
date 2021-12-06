@@ -73,18 +73,17 @@ def tensor_conv1d(
 
     for i in prange(out_size):
         out_index = np.empty(len(out_shape), np.uint16)
-        idx = (out_size - i - 1) if reverse else i
-        to_index(idx, out_shape, out_index)
+        to_index(i, out_shape, out_index)
         current_batch, current_out_channel, current_width = out_index
         out_pos = (
             current_batch * out_strides[0]
             + current_out_channel * out_strides[1]
             + current_width * out_strides[2]
         )
-        for current_in_channel in range(in_channels):
+        for current_in_channel in prange(in_channels):
             for current_kw in range(kw):
                 if reverse:
-                    current_kw = kw - current_kw -1
+                    current_kw = kw - current_kw - 1
                 weight_pos = (
                     current_out_channel * weight_strides[0]  +
                     current_in_channel * weight_strides[1] +
@@ -222,14 +221,13 @@ def tensor_conv2d(
 
     for i in prange(out_size):
         out_index = np.empty(len(out_shape), np.uint16)
-        idx = (out_size - i - 1) if reverse else i
-        to_index(idx, out_shape, out_index)
+        to_index(i, out_shape, out_index)
         current_batch, current_out_channel, current_height, current_width  = out_index
         out_pos = (
             current_batch * out_strides[0] + current_out_channel * out_strides[1]
             + current_height * out_strides[2] + current_width * out_strides[3]
         )
-        for current_in_channel in range(in_channels):
+        for current_in_channel in prange(in_channels):
             for current_kh in range(kh):
                 for current_kw in range(kw):
                     if reverse:

@@ -41,22 +41,13 @@ class Module:
         Returns:
             list of pairs: Contains the name and :class:`Parameter` of each ancestor parameter.
         """
-        def helperRec(modArg, retLst, key=""):
-            for k , v in modArg._parameters.items():
-                if key == "":
-                    retLst.append((k, v))
-                else:
-                    retLst.append((f"{key}.{k}", v))
-
-            for k, mod in modArg._modules.items():
-                if key == "":
-                    helperRec(mod, retLst, k)
-                else:
-                    helperRec(mod, retLst, f"{key}.{k}")
-
-        out = []
-        helperRec(self, out)
-        return out
+        parameters = {}
+        for k, v in self._parameters.items():
+            parameters[k] = v
+        for mod_name, m in self._modules.items():
+            for k, v in m.named_parameters():
+                parameters[f"{mod_name}.{k}"] = v
+        return parameters.items()
 
     def parameters(self):
         "Enumerate over all the parameters of this module and its descendents."
