@@ -73,10 +73,10 @@ class CNNSentimentKim(minitorch.Module):
         out2 = self.conv2.forward(embeddings).relu()
         out3 = self.conv3.forward(embeddings).relu()
         out_sum = minitorch.nn.max(out1, 2) + minitorch.nn.max(out2, 2) + minitorch.nn.max(out3, 2)
-        l = self.linear.forward(out_sum).relu()
+        l = self.linear.forward(out_sum)  # no need to view out_sum, edited the Linear forward
         if self.training:
             l = minitorch.dropout(l, self.dropout)
-        return l.sigmoid()
+        return l.sigmoid().view(embeddings.shape[0])
 
 
 # Evaluation helper methods
