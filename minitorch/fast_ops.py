@@ -290,7 +290,7 @@ def tensor_matrix_multiply(
                 a_inner = i1 * a_batch_stride + i2 * a_strides[1]
                 b_inner = i1 * b_batch_stride + i3 * b_strides[2]
                 acc = 0.
-                for _ in range (a_shape[2]):
+                for _ in range(a_shape[2]):
                     acc += a_storage[a_inner] * b_storage[b_inner]
                     a_inner += a_strides[2]
                     b_inner += b_strides[1]
@@ -298,6 +298,7 @@ def tensor_matrix_multiply(
                     i1 * out_strides[0] + i2 * out_strides[1] + i3 * out_strides[2]
                 )
                 out[out_position] = acc
+
 
 def matrix_multiply(a, b):
     """
