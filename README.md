@@ -34,7 +34,7 @@ This assignment requires the following files from the previous assignments.
 ## Digit classification (MNIST)
 <br>
 <img src="img/mnist_out.png">
-Click here for Digit classification Logs</summary><br>
+<details><summary>Click here for Digit classification Logs</summary><br>
 Epoch  1  loss  2.2964027502783786 correct 2<br>
 Epoch  1  loss  11.512691118988306 correct 1<br>
 Epoch  1  loss  11.521496314375229 correct 2<br>
