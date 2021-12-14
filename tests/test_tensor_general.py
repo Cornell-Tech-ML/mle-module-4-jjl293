@@ -113,6 +113,15 @@ def test_reduce(fn, backend, data):
 if numba.cuda.is_available():
 
     @pytest.mark.task3_3
+    def test_sum_practice1():
+        x = [1 for i in range(32)]
+        b = minitorch.tensor(x)
+        s = b.sum()[0]
+        b2 = minitorch.tensor(x, backend=shared["cuda"])
+        out = minitorch.sum_practice(b2)
+        assert_close(s, out._storage[0] + out._storage[1])
+
+    @pytest.mark.task3_3
     def test_sum_practice():
         x = [random.random() for i in range(16)]
         b = minitorch.tensor(x)
@@ -157,15 +166,32 @@ if numba.cuda.is_available():
         out = b2.sum(0)
         assert_close(s, out[0])
 
-    @pytest.mark.task3_3
-    def test_sum_practice_other_dims():
-        x = [[random.random() for i in range(32)] for j in range(16)]
-        b = minitorch.tensor(x)
-        s = b.sum(1)
-        b2 = minitorch.tensor(x, backend=shared["cuda"])
-        out = b2.sum(1)
-        for i in range(16):
-            assert_close(s[i, 0], out[i, 0])
+    @pytest.mark.task3_4
+    def test_mul_practice0():
+        "Extend to require a batch"
+        size = 33
+        x = [
+            [[1 for i in range(size)] for j in range(size)]
+            for _ in range(2)
+        ]
+        y = [
+            [[1 for i in range(size)] for j in range(size)]
+            for _ in range(2)
+        ]
+        z = minitorch.tensor(x, backend=shared["fast"]) @ minitorch.tensor(
+            y, backend=shared["fast"]
+        )
+
+        x = minitorch.tensor(x, backend=shared["cuda"])
+        y = minitorch.tensor(y, backend=shared["cuda"])
+        z2 = x @ y
+
+        for b in range(2):
+            for i in range(size):
+                for j in range(size):
+                    if not minitorch.operators.is_close(z[b, i, j], z2[b, i, j]):
+                        print("HERE!", b, i, j)
+                        assert_close(z[b, i, j], z2[b, i, j])
 
     @pytest.mark.task3_4
     def test_mul_practice1():

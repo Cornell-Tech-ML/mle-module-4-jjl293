@@ -27,7 +27,9 @@ class Network(minitorch.Module):
         self.layer3 = Linear(hidden, 1, backend)
 
     def forward(self, x):
-        raise NotImplementedError('Need to include this file from past assignment.')
+        h = self.layer1.forward(x).relu()
+        h = self.layer2.forward(h).relu()
+        return self.layer3.forward(h).sigmoid()
 
 
 class Linear(minitorch.Module):
@@ -40,14 +42,28 @@ class Linear(minitorch.Module):
         self.out_size = out_size
 
     def forward(self, x):
-        raise NotImplementedError('Need to include this file from past assignment.')
+        weights = self.weights.value
+        mul = x @ weights
+
+        bias = self.bias.value
+        bias = bias.view(1, bias.shape[0])
+
+        y = mul + bias
+        return y
 
 
 class FastTrain:
-    def __init__(self, hidden_layers, backend=FastTensorBackend):
+    def __init__(self, hidden_layers, backend=None):
         self.hidden_layers = hidden_layers
-        self.model = Network(hidden_layers, backend)
-        self.backend = backend
+        # backend priority (backend param) -> GPU -> CPU
+        if backend is not None:
+            self.backend = backend
+        elif GPUBackend is not None:
+            self.backend = GPUBackend
+        else:
+            self.backend = FastTensorBackend
+
+        self.model = Network(hidden_layers, self.backend)
 
     def run_one(self, x):
         return self.model.forward(minitorch.tensor([x], backend=self.backend))

@@ -4,7 +4,6 @@ from .tensor_data import (
     index_to_position,
     broadcast_index,
     shape_broadcast,
-    MAX_DIMS,
 )
 
 
@@ -27,7 +26,7 @@ def tensor_map(fn):
 
     Args:
         fn: function from float-to-float to apply
-        out (array): storage for out tensor
+        out_storage (array): storage for out tensor
         out_shape (array): shape for out tensor
         out_strides (array): strides for out tensor
         in_storage (array): storage for in tensor
@@ -38,8 +37,14 @@ def tensor_map(fn):
         None : Fills in `out`
     """
 
-    def _map(out, out_shape, out_strides, in_storage, in_shape, in_strides):
-        raise NotImplementedError('Need to include this file from past assignment.')
+    def _map(out_storage, out_shape, out_strides, in_storage, in_shape, in_strides) -> None:
+        out_index = [0] * len(out_shape)
+        in_index = [0] * len(in_shape)
+        for i in range(len(out_storage)):
+            to_index(i, out_shape, out_index)
+            broadcast_index(out_index, out_shape, in_shape, in_index)
+            data = in_storage[index_to_position(in_index, in_strides)]
+            out_storage[index_to_position(out_index, out_strides)] = fn(data)
 
     return _map
 
@@ -98,13 +103,13 @@ def tensor_zip(fn):
 
     Broadcasted version:
 
-    * Fill in the `out` array by applying `fn` to each
+    * Fill in the `out_storage` array by applying `fn` to each
       value of `a_storage` and `b_storage` assuming `a_shape`
       and `b_shape` broadcast to `out_shape`.
 
     Args:
         fn: function mapping two floats to float to apply
-        out (array): storage for `out` tensor
+        out_storage (array): storage for `out` tensor
         out_shape (array): shape for `out` tensor
         out_strides (array): strides for `out` tensor
         a_storage (array): storage for `a` tensor
@@ -119,7 +124,7 @@ def tensor_zip(fn):
     """
 
     def _zip(
-        out,
+        out_storage,
         out_shape,
         out_strides,
         a_storage,
@@ -129,7 +134,16 @@ def tensor_zip(fn):
         b_shape,
         b_strides,
     ):
-        raise NotImplementedError('Need to include this file from past assignment.')
+        out_index = [0] * len(out_shape)
+        a_index = [0] * len(a_shape)
+        b_index = [0] * len(b_shape)
+        for i in range(len(out_storage)):
+            to_index(i, out_shape, out_index)
+            broadcast_index(out_index, out_shape, a_shape, a_index)
+            broadcast_index(out_index, out_shape, b_shape, b_index)
+            a_data = a_storage[index_to_position(a_index, a_strides)]
+            b_data = b_storage[index_to_position(b_index, b_strides)]
+            out_storage[index_to_position(out_index, out_strides)] = fn(a_data, b_data)
 
     return _zip
 
@@ -186,7 +200,7 @@ def tensor_reduce(fn):
 
     Args:
         fn: reduction function mapping two floats to float
-        out (array): storage for `out` tensor
+        out_storage (array): storage for `out` tensor
         out_shape (array): shape for `out` tensor
         out_strides (array): strides for `out` tensor
         a_storage (array): storage for `a` tensor
@@ -198,8 +212,18 @@ def tensor_reduce(fn):
         None : Fills in `out`
     """
 
-    def _reduce(out, out_shape, out_strides, a_storage, a_shape, a_strides, reduce_dim):
-        raise NotImplementedError('Need to include this file from past assignment.')
+    def _reduce(out_storage, out_shape, out_strides, a_storage, a_shape, a_strides, reduce_dim):
+        reduce_shape = [1 if i != reduce_dim else x for i, x in enumerate(a_shape)]
+        multi_dim_i = np.array(out_shape)
+        multi_dim_offset = np.array(reduce_shape)
+        for p in range(len(out_storage)):
+            to_index(p, out_shape, multi_dim_i)
+            k = index_to_position(multi_dim_i, out_strides)
+            for s in range(a_shape[reduce_dim]):
+                to_index(s, reduce_shape, multi_dim_offset)
+                a_index = multi_dim_i + multi_dim_offset
+                out_storage[k] = fn(
+                    out_storage[k], a_storage[index_to_position(a_index, a_strides)])
 
     return _reduce
 
@@ -227,6 +251,7 @@ def reduce(fn, start=0.0):
     Returns:
         :class:`TensorData` : new tensor
     """
+
     f = tensor_reduce(fn)
 
     def ret(a, dim):

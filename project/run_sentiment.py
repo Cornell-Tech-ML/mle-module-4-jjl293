@@ -19,7 +19,7 @@ class Linear(minitorch.Module):
         self.out_size = out_size
 
     def forward(self, x):
-        batch, in_size = x.shape
+        batch, in_size, _ = x.shape
         return (
             x.view(batch, in_size) @ self.weights.value.view(in_size, self.out_size)
         ).view(batch, self.out_size) + self.bias.value
@@ -32,8 +32,7 @@ class Conv1d(minitorch.Module):
         self.bias = RParam(1, out_channels, 1)
 
     def forward(self, input):
-        # TODO: Implement for Task 4.5.
-        raise NotImplementedError('Need to implement for Task 4.5')
+        return minitorch.conv1d(input, self.weights.value) + self.bias.value
 
 
 class CNNSentimentKim(minitorch.Module):
@@ -47,7 +46,7 @@ class CNNSentimentKim(minitorch.Module):
         followed by a non-linear activation function (the paper uses tanh, we apply a ReLu)
     2. Apply max-over-time across each feature map
     3. Apply a Linear to size C (number of classes) followed by a ReLU and Dropout with rate 25%
-    4. Apply a logsoftmax over the class dimension.
+    4. Apply a Sigmoid.
     """
 
     def __init__(
@@ -59,15 +58,25 @@ class CNNSentimentKim(minitorch.Module):
     ):
         super().__init__()
         self.feature_map_size = feature_map_size
-        # TODO: Implement for Task 4.5.
-        raise NotImplementedError('Need to implement for Task 4.5')
+        self.dropout = dropout
+        self.conv1 = Conv1d(embedding_size, feature_map_size, filter_sizes[0])
+        self.conv2 = Conv1d(embedding_size, feature_map_size, filter_sizes[1])
+        self.conv3 = Conv1d(embedding_size, feature_map_size, filter_sizes[2])
+        self.linear = Linear(feature_map_size, 1)  # 3 * feature_map_size, if implement concat
 
-    def forward(self, embeddings):
+    def forward(self, embeddings: 'minitorch.Tensor'):
         """
             embeddings tensor: [batch x sentence length x embedding dim]
         """
-        # TODO: Implement for Task 4.5.
-        raise NotImplementedError('Need to implement for Task 4.5')
+        embeddings = embeddings.permute(0, 2, 1)
+        out1 = self.conv1.forward(embeddings).relu()
+        out2 = self.conv2.forward(embeddings).relu()
+        out3 = self.conv3.forward(embeddings).relu()
+        out_sum = minitorch.nn.max(out1, 2) + minitorch.nn.max(out2, 2) + minitorch.nn.max(out3, 2)
+        l = self.linear.forward(out_sum)  # no need to view out_sum, edited the Linear forward
+        if self.training:
+            l = minitorch.dropout(l, self.dropout)
+        return l.sigmoid().view(embeddings.shape[0])
 
 
 # Evaluation helper methods

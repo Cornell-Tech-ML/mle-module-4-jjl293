@@ -3,7 +3,6 @@ from .tensor_data import (
     to_index,
     index_to_position,
     broadcast_index,
-    MAX_DIMS,
 )
 from .tensor_functions import Function
 from numba import njit, prange
@@ -71,11 +70,39 @@ def tensor_conv1d(
         and in_channels == in_channels_
         and out_channels == out_channels_
     )
-    s1 = input_strides
-    s2 = weight_strides
 
-    # TODO: Implement for Task 4.1.
-    raise NotImplementedError('Need to implement for Task 4.1')
+    for i in prange(out_size):
+        out_index = np.empty(len(out_shape), np.uint16)
+        to_index(i, out_shape, out_index)
+        current_batch, current_out_channel, current_width = out_index
+        out_pos = (
+            current_batch * out_strides[0]
+            + current_out_channel * out_strides[1]
+            + current_width * out_strides[2]
+        )
+        for current_in_channel in prange(in_channels):
+            for current_kw in range(kw):
+                if reverse:
+                    current_kw = kw - current_kw - 1
+                weight_pos = (
+                    current_out_channel * weight_strides[0]
+                    + current_in_channel * weight_strides[1]
+                    + current_kw * weight_strides[2]
+                )
+                input_val = 0
+                if reverse and 0 <= (current_width - current_kw):
+                    input_val = input[
+                        current_batch * input_strides[0]
+                        + current_in_channel * input_strides[1]
+                        + (current_width - current_kw) * input_strides[2]
+                    ]
+                elif not reverse and (current_width + current_kw) < width:
+                    input_val = input[
+                        current_batch * input_strides[0]
+                        + current_in_channel * input_strides[1]
+                        + (current_width + current_kw) * input_strides[2]
+                    ]
+                out[out_pos] += input_val * weight[weight_pos]
 
 
 class Conv1dFun(Function):
@@ -192,14 +219,40 @@ def tensor_conv2d(
         and out_channels == out_channels_
     )
 
-    s1 = input_strides
-    s2 = weight_strides
-    # inners
-    s10, s11, s12, s13 = s1[0], s1[1], s1[2], s1[3]
-    s20, s21, s22, s23 = s2[0], s2[1], s2[2], s2[3]
-
-    # TODO: Implement for Task 4.2.
-    raise NotImplementedError('Need to implement for Task 4.2')
+    for i in prange(out_size):
+        out_index = np.empty(len(out_shape), np.uint16)
+        to_index(i, out_shape, out_index)
+        current_batch, current_out_channel, current_height, current_width = out_index
+        out_pos = (
+            current_batch * out_strides[0] + current_out_channel * out_strides[1]
+            + current_height * out_strides[2] + current_width * out_strides[3]
+        )
+        for current_in_channel in prange(in_channels):
+            for current_kh in range(kh):
+                for current_kw in range(kw):
+                    if reverse:
+                        current_kh = kh - current_kh - 1
+                        current_kw = kw - current_kw - 1
+                    weight_pos = (
+                        current_out_channel * weight_strides[0] + current_in_channel * weight_strides[1]
+                        + current_kh * weight_strides[2] + current_kw * weight_strides[3]
+                    )
+                    input_val = 0
+                    if reverse and 0 <= (current_height - current_kh) and 0 <= (current_width - current_kw):
+                        input_val = input[
+                            current_batch * input_strides[0]
+                            + current_in_channel * input_strides[1]
+                            + (current_height - current_kh) * input_strides[2]
+                            + (current_width - current_kw) * input_strides[3]
+                        ]
+                    elif not reverse and (current_height + current_kh) < height and (current_width + current_kw) < width:
+                        input_val = input[
+                            current_batch * input_strides[0]
+                            + current_in_channel * input_strides[1]
+                            + (current_height + current_kh) * input_strides[2]
+                            + (current_width + current_kw) * input_strides[3]
+                        ]
+                    out[out_pos] += input_val * weight[weight_pos]
 
 
 class Conv2dFun(Function):
